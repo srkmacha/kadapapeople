@@ -1,15 +1,15 @@
 ﻿import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = process.env.AUTH_SECRET;
+function getSecretKey() {
+  const secret = process.env.AUTH_SECRET;
 
-if (!secret) {
-  throw new Error(
-    "AUTH_SECRET is missing from .env.local."
-  );
+  if (!secret) {
+    throw new Error("AUTH_SECRET environment variable is not configured.");
+  }
+
+  return new TextEncoder().encode(secret);
 }
-
-const secretKey = new TextEncoder().encode(secret);
 
 export async function hashPassword(
   password: string
@@ -37,11 +37,11 @@ export async function createAuthToken(payload: {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("8h")
-    .sign(secretKey);
+    .sign(getSecretKey());
 }
 
 export async function verifyAuthToken(token: string) {
-  const { payload } = await jwtVerify(token, secretKey);
+  const { payload } = await jwtVerify(token, getSecretKey());
 
   return {
     userId: String(payload.userId),

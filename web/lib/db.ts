@@ -1,42 +1,24 @@
 ﻿import { Pool } from "pg";
-import fs from "fs";
-import path from "path";
 
-function getDatabaseUrl(): string {
-  const envPath = path.join(process.cwd(), ".env.local");
+const connectionString = process.env.DATABASE_URL;
 
-  if (!fs.existsSync(envPath)) {
-    throw new Error(`Missing .env.local at ${envPath}`);
-  }
-
-  const content = fs.readFileSync(envPath, "utf8");
-
-  const match = content.match(
-    /^\s*DATABASE_URL\s*=\s*["']?(.+?)["']?\s*$/m
-  );
-
-  if (!match || !match[1]) {
-    throw new Error(
-      `DATABASE_URL not found in ${envPath}`
-    );
-  }
-
-  return match[1].trim().replace(/^["']|["']$/g, "");
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is not configured.");
 }
 
-const globalForDb = globalThis as unknown as {
-  pgPool?: Pool;
-};
+declare global {
+  var __kadapaPeopleDb: Pool | undefined;
+}
 
 export const db =
-  globalForDb.pgPool ??
+  global.__kadapaPeopleDb ??
   new Pool({
-    connectionString: getDatabaseUrl(),
+    connectionString,
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForDb.pgPool = db;
+  global.__kadapaPeopleDb = db;
 }
